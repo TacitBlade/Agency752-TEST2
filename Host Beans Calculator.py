@@ -2,35 +2,16 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-# Tiered salary structure based on beans earned
+# Tiered salary structure
 TIERED_SALARY = [
-(5000, 23)
-(10000, 23)
-(20000,	45)
-(30000,	67)
-(40000,	89)
-(50000,	112)
-(60000,	134)
-(70000,	156)
-(80000,	178)
-(90000,	200)
-(100000, 221)
-(110000, 243)
-(120000, 263)
-(130000, 281)
-(170000, 361)
-(250000, 525)
-(350000, 735)
-(450000, 945)
-(600000, 1220)
-(800000, 1613)
-(1000000, 2000)
-(1500000, 2950)
-(2000000, 3925)
-(3000000, 5900)
-(4000000, 7650)
-(5000000, 9200)
-(6000000, 10200)
+    (100_000, 80),
+    (70_000, 70),
+    (50_000, 60),
+    (30_000, 50),
+    (20_000, 40),
+    (10_000, 30),
+    (5_000, 23),
+    (0, 0)
 ]
 
 def get_salary_usd(beans_earned):
@@ -54,12 +35,9 @@ with st.form("bean_calc_form"):
     agents_input = []
     for i in range(int(num_agents)):
         st.markdown(f"#### Agent {i+1}")
-        name = st.text_input(f"Name", key=f"name_{i}")
+        name = st.text_input("Name", key=f"name_{i}")
         beans_earned = st.number_input("Beans Earned by Host", key=f"beans_{i}", min_value=0)
-        agents_input.append({
-            "name": name,
-            "beans_earned": beans_earned
-        })
+        agents_input.append({"name": name, "beans_earned": beans_earned})
     submitted = st.form_submit_button("Calculate")
 
 if submitted:
@@ -74,7 +52,6 @@ if submitted:
             "5% Commission": commission,
             "Total Beans": total
         })
-
     df = pd.DataFrame(results)
     st.success("✅ Calculations complete!")
     st.dataframe(df)
