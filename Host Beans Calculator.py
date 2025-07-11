@@ -4,6 +4,7 @@ from io import BytesIO
 
 # Tiered salary structure
 TIERED_SALARY = [
+    
 (6000000, 10200)
 (5000000, 9200)
 (4000000, 7650)
