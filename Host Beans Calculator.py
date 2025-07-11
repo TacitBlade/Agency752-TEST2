@@ -4,7 +4,7 @@ from io import BytesIO
 
 # Tiered salary structure based on beans earned
 TIERED_SALARY = [
-    (0, 0)
+(0, 0)
 (5000, 23)
 (10000, 23)
 (20000,	45)
