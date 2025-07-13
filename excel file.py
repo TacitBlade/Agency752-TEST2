@@ -4,7 +4,7 @@ import requests
 st.set_page_config(page_title="📄 OneDrive File Viewer", layout="centered")
 st.title("📄 View File from OneDrive Link")
 
-file_url = st.text_input("Enter the direct OneDrive file link (must be accessible):")
+file_url = st.text_input("https://1drv.ms/f/c/5b477b3909c98aee/Es1gCTDMmUxKkg-n16H88HkBur_Pq9neRe7pVDCUAspFHw?e=p0DD88")
 
 if file_url:
     try:
