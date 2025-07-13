@@ -26,7 +26,8 @@ def get_credentials():
 
 def list_drive_files(service):
     results = service.files().list(
-        pageSize=20, fields="nextPageToken, files(id, name, mimeType)").execute()
+        pageSize=20,
+        fields="nextPageToken, files(id, name, mimeType)").execute()
     return results.get('files', [])
 
 def download_file(service, file_id, file_name):
@@ -41,7 +42,6 @@ def download_file(service, file_id, file_name):
     href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_name}">📥 Download {file_name}</a>'
     return href
 
-# Streamlit UI
 st.title("📁 Google Drive File Viewer + Downloader")
 
 if st.button("List & Download Files"):
@@ -54,7 +54,7 @@ if st.button("List & Download Files"):
                 st.success("Files retrieved successfully!")
                 for file in files:
                     st.write(f"**{file['name']}** _(MIME type: {file['mimeType']})_")
-                    if file['mimeType'] != 'application/vnd.google-apps.folder':  # Skip folders
+                    if file['mimeType'] != 'application/vnd.google-apps.folder':
                         download_link = download_file(service, file['id'], file['name'])
                         st.markdown(download_link, unsafe_allow_html=True)
             else:
