@@ -1,5 +1,7 @@
 streamlit
-pandas 
+pandas
 beautifulsoup4
 lxml
-
+google-auth
+google-auth-oauthlib
+google-api-python-client
