@@ -25,10 +25,15 @@ def get_credentials():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+            auth_url, _ = flow.authorization_url(prompt='consent')
+            st.info(f"Please visit this URL to authorize access: {auth_url}")
+            auth_code = st.text_input("Paste the authorization code here:")
+            if not auth_code:
+                st.stop()
+            flow.fetch_token(code=auth_code)
+            creds = flow.credentials
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
     return creds
 
 def list_drive_files(service):
