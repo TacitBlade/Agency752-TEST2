@@ -7,7 +7,7 @@ st.title("📊 Broadcaster Performance Dashboard")
 
 # Path to OneDrive–synced folder (no trailing slash)
 drive_path = r"C:\Users\markj\OneDrive\Desktop\Broadcaster Data"
-excel_files = glob.glob(os.path.join(drive_path, "*.xlsx"))
+excel_files = glob.glob(os.path.join(drive_path, "alpha agency .xlsx"))
 
 # Debug: show found files
 st.write("Excel files found:", excel_files)
