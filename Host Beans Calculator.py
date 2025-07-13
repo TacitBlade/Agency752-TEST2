@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 # Set the folder location
-FOLDER_PATH = r"C:\Users\markj\OneDrive\Desktop\Broadcaster"  # Change this to your folder path
+FOLDER_PATH = r"C:\Users\markj\OneDrive\Desktop\Broadcaster Data"  # Change this to your folder path
 
 st.title("📊 Excel File Viewer")
 
