@@ -5,7 +5,7 @@ import io
 
 st.title("📊 Broadcaster Performance Dashboard")
 
-# Path to Google Drive–synced folder
+# Path to OneDrive–synced folder (local path)
 drive_path = r"C:\Users\markj\OneDrive\Desktop\Broadcaster Data"
 excel_files = glob.glob(os.path.join(drive_path, "*.xlsx"))
 
@@ -49,4 +49,4 @@ if excel_files:
     except Exception as e:
         st.error(f"Error reading Excel file: {e}")
 else:
-    st.warning("No Excel files found in your Drive folder.")
+    st.warning("No Excel files found in your OneDrive folder.")
