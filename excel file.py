@@ -1,28 +1,52 @@
 import streamlit as st
 import requests
+from bs4 import BeautifulSoup
 
-st.set_page_config(page_title="📄 OneDrive File Viewer", layout="centered")
-st.title("📄 View File from OneDrive Link")
+st.set_page_config(page_title="📁 OneDrive Folder Viewer", layout="wide")
+st.title("📁 View OneDrive Folder Contents")
 
-file_url = st.text_input("https://1drv.ms/f/c/5b477b3909c98aee/Es1gCTDMmUxKkg-n16H88HkBur_Pq9neRe7pVDCUAspFHw?e=p0DD88")
+folder_url = st.text_input("Enter the OneDrive folder share link:")
 
-if file_url:
+def list_onedrive_files(url):
     try:
-        response = requests.get(file_url)
+        response = requests.get(url)
         response.raise_for_status()
 
-        # Guess file type by content-type header
-        content_type = response.headers.get('Content-Type', '')
-        
-        if 'text' in content_type:
-            st.subheader("🔍 File Preview (Text)")
-            st.text(response.text[:500])  # Display first 500 characters
-        elif 'image' in content_type:
-            st.subheader("🖼️ File Preview (Image)")
-            st.image(response.content)
-        else:
-            st.info("File downloaded successfully, but type not previewable.")
-            st.download_button("Download File", response.content, "file_download")
+        soup = BeautifulSoup(response.text, 'lxml')
+        links = soup.find_all('a')
+        file_links = []
 
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching file: {e}")
+        for link in links:
+            href = link.get('href')
+            text = link.text.strip()
+            if href and "redir" in href:  # crude filter for OneDrive file links
+                file_links.append((text, href))
+        
+        return file_links, None
+
+    except Exception as e:
+        return [], str(e)
+
+if folder_url:
+    files, error = list_onedrive_files(folder_url)
+    
+    if error:
+        st.error(f"Could not retrieve folder: {error}")
+    elif not files:
+        st.warning("No files found or unable to parse folder contents.")
+    else:
+        st.success(f"Found {len(files)} file(s) in the folder.")
+        for name, link in files:
+            st.markdown(f"[📄 {name}]({link})")
+
+        # Optional: Allow preview of one of the links
+        selected_link = st.selectbox("Select a file to preview", [f[1] for f in files])
+        if selected_link:
+            preview_response = requests.get(selected_link)
+            if "image" in preview_response.headers.get("Content-Type", ""):
+                st.image(preview_response.content)
+            elif "text" in preview_response.headers.get("Content-Type", ""):
+                st.text(preview_response.text[:500])
+            else:
+                st.info("File type not previewable. Use download below.")
+                st.download_button("Download File", preview_response.content, "downloaded_file")
