@@ -1,4 +1,4 @@
-streamlit
-pandas
-openpyxl
+streamlit as st
+pandas as pd
+os
 
