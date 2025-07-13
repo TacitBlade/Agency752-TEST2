@@ -6,7 +6,7 @@ import io
 st.title("📊 Broadcaster Performance Dashboard")
 
 # Path to OneDrive–synced folder (local path)
-drive_path = r"C:\Users\markj\OneDrive\Desktop\Broadcaster Data"
+drive_path = r"C:\Users\markj\OneDrive\Desktop\Broadcaster Data/"
 excel_files = glob.glob(os.path.join(drive_path, "*.xlsx"))
 
 if excel_files:
