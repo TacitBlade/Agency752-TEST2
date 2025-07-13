@@ -1,11 +1,13 @@
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
+import os
 
 st.set_page_config(page_title="📁 OneDrive Folder Viewer", layout="wide")
 st.title("📁 View OneDrive Folder Contents")
 
 folder_url = st.text_input("Enter the OneDrive folder share link:")
+FOLDER_PATH = st.text_input("Enter the local folder path:")
 
 def list_onedrive_files(url):
     try:
@@ -50,3 +52,8 @@ if folder_url:
             else:
                 st.info("File type not previewable. Use download below.")
                 st.download_button("Download File", preview_response.content, "downloaded_file")
+
+if FOLDER_PATH:
+    st.write("Files in folder:", os.listdir(FOLDER_PATH))
+    excel_files = [f for f in os.listdir(FOLDER_PATH) if f.endswith(('.xlsx', '.xls'))]
+    st.write("Excel files found:", excel_files)
