@@ -54,6 +54,9 @@ if folder_url:
                 st.download_button("Download File", preview_response.content, "downloaded_file")
 
 if FOLDER_PATH:
-    st.write("Files in folder:", os.listdir(FOLDER_PATH))
-    excel_files = [f for f in os.listdir(FOLDER_PATH) if f.endswith(('.xlsx', '.xls'))]
-    st.write("Excel files found:", excel_files)
+    if os.path.exists(FOLDER_PATH):
+        st.write("Files in folder:", os.listdir(FOLDER_PATH))
+        excel_files = [f for f in os.listdir(FOLDER_PATH) if f.endswith(('.xlsx', '.xls'))]
+        st.write("Excel files found:", excel_files)
+    else:
+        st.error(f"Folder not found: {FOLDER_PATH}")
