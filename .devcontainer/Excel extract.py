@@ -9,21 +9,26 @@ def process_excel_file(uploaded_file, start_date, end_date):
 
     for sheet_name, df in excel_data.items():
         if 'Agency Name' in df.columns and 'Date' in df.columns:
-            # Filter by agency
-            df_filtered_agency = df[df['Agency Name'].astype(str).str.contains('Alpha Agency', case=False, na=False)]
+            df['Agency Name'] = df['Agency Name'].astype(str)
 
-            # Convert 'Date' to datetime
-            df_filtered_agency['Date'] = pd.to_datetime(df_filtered_agency['Date'], errors='coerce')
+            # Filter by agency name
+            df_filtered = df[df['Agency Name'].str.contains('Alpha Agency', case=False, na=False)].copy()
+
+            # Convert Date to datetime
+            df_filtered['Date'] = pd.to_datetime(df_filtered['Date'], errors='coerce')
 
             # Filter by date range
-            df_filtered_agency = df_filtered_agency[
-                (df_filtered_agency['Date'] >= start_date) &
-                (df_filtered_agency['Date'] <= end_date)
+            df_filtered = df_filtered[
+                (df_filtered['Date'] >= start_date) &
+                (df_filtered['Date'] <= end_date)
             ]
 
-            # Only include required columns if they exist
-            available_columns = [col for col in required_columns if col in df_filtered_agency.columns]
-            df_final = df_filtered_agency[available_columns]
+            # Ensure all required columns exist
+            for col in required_columns:
+                if col not in df_filtered.columns:
+                    df_filtered[col] = ""
+
+            df_final = df_filtered[required_columns]
 
             if not df_final.empty:
                 filtered_data[sheet_name] = df_final
@@ -38,23 +43,34 @@ def process_excel_file(uploaded_file, start_date, end_date):
     else:
         return None
 
-st.title("📊 Filter Excel Data by 'Alpha Agency' and Date Range")
+# Streamlit Interface
+st.title("📊 Filter Excel by Agency & Date Range")
 
 uploaded_file = st.file_uploader("Upload your Excel file (.xlsx)", type=["xlsx"])
-
-start_date = st.date_input("Start Date")
-end_date = st.date_input("End Date")
+start_date = st.date_input("Select Start Date")
+end_date = st.date_input("Select End Date")
 
 if uploaded_file and start_date and end_date:
-    filtered_output = process_excel_file(uploaded_file, pd.to_datetime(start_date), pd.to_datetime(end_date))
+    st.info("Processing file, please wait...")
+    output_excel = process_excel_file(uploaded_file, pd.to_datetime(start_date), pd.to_datetime(end_date))
 
-    if filtered_output:
-        st.success("✅ Data filtered successfully.")
+    if output_excel:
+        st.success("✅ Data filtered and ready.")
+
+        # Preview each sheet
+        output_excel.seek(0)
+        preview_data = pd.read_excel(output_excel, sheet_name=None)
+
+        for sheet_name, df in preview_data.items():
+            st.subheader(f"📄 Preview: {sheet_name}")
+            st.dataframe(df)
+
+        # Download button
         st.download_button(
             label="📥 Download Filtered File",
-            data=filtered_output,
+            data=output_excel,
             file_name="filtered_agency_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     else:
-        st.warning("⚠️ No matching data found for 'Alpha Agency' in the selected date range.")
+        st.warning("⚠️ No matching data found for 'Alpha Agency' in the selected range.")
