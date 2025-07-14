@@ -29,11 +29,14 @@ def process_excel_file(uploaded_file, start_date, end_date):
         normalize_column(df_filtered, 'ID1', ['ID1', 'ID 1', 'Identifier1', 'Agent ID'])
         normalize_column(df_filtered, 'ID2', ['ID2', 'ID 2', 'Identifier2', 'Reference ID'])
 
-        final_cols = ['Date', 'Time', 'Agency Name', 'ID1', 'ID2']
-        df_final = df_filtered[final_cols]
+        # Format Date cleanly
+        df_filtered['Date'] = df_filtered['Date'].dt.strftime('%Y-%m-%d')
 
-        # ✨ Format Date column without time component
-        df_final['Date'] = df_final['Date'].dt.strftime('%Y-%m-%d')
+        # ✨ Add PK Type column based on sheet name
+        df_filtered['PK Type'] = sheet_name
+
+        final_cols = ['PK Type', 'Date', 'Time', 'Agency Name', 'ID1', 'ID2']
+        df_final = df_filtered[final_cols]
 
         if not df_final.empty:
             filtered_data[sheet_name] = df_final
@@ -44,7 +47,7 @@ def process_excel_file(uploaded_file, start_date, end_date):
             for sheet, df in filtered_data.items():
                 df.to_excel(writer, sheet_name=sheet, index=False)
 
-        # 🧼 Auto-fit columns to avoid ###### in Excel
+        # 🧼 Auto-adjust columns for clean display
         temp_output.seek(0)
         workbook = load_workbook(temp_output)
         for sheet in workbook.worksheets:
@@ -59,30 +62,30 @@ def process_excel_file(uploaded_file, start_date, end_date):
         return None
 
 # 🎛 Streamlit UI
-st.title("📊 Excel Filter — Clean Date, Time, Agency, ID1 & ID2")
+st.title("📊 Filter Excel — Add PK Type & Clean Output")
 
-uploaded_file = st.file_uploader("📁 Upload Excel File", type=["xlsx"])
+uploaded_file = st.file_uploader("📁 Upload Excel File (.xlsx)", type=["xlsx"])
 start_date = st.date_input("Start Date")
 end_date = st.date_input("End Date")
 
 if uploaded_file and start_date and end_date:
-    st.info("🔍 Filtering and formatting...")
+    st.info("🔧 Processing with PK labeling...")
     result_excel = process_excel_file(uploaded_file, pd.to_datetime(start_date), pd.to_datetime(end_date))
 
     if result_excel:
-        st.success("✅ File is ready!")
+        st.success("✅ Filter complete!")
 
         result_excel.seek(0)
         preview_data = pd.read_excel(result_excel, sheet_name=None)
         for sheet_name, df in preview_data.items():
-            st.subheader(f"📄 Preview: {sheet_name}")
+            st.subheader(f"📄 Sheet Preview: {sheet_name}")
             st.dataframe(df)
 
         st.download_button(
-            label="📥 Download Filtered File",
+            label="📥 Download Filtered File with PK Type",
             data=result_excel,
             file_name="filtered_agency_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     else:
-        st.warning("⚠️ No matching entries found for 'Alpha Agency' in selected range.")
+        st.warning("⚠️ No matching data found for 'Alpha Agency' in selected range.")
