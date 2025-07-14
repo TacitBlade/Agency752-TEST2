@@ -1,30 +1,41 @@
-
+import streamlit as st
 import pandas as pd
+from io import BytesIO
 
-def process_excel_file(input_file_path, output_file_path):
-    excel_data = pd.read_excel(input_file_path, sheet_name=None)
+def process_excel_file(uploaded_file):
+    excel_data = pd.read_excel(uploaded_file, sheet_name=None)
     filtered_data = {}
 
     for sheet_name, df in excel_data.items():
         if 'Agency Name' in df.columns:
-            # Filter rows where 'Agency Name' contains 'Alpha Agency'
             filtered_df = df[df['Agency Name'].astype(str).str.contains('Alpha Agency', case=False, na=False)]
             if not filtered_df.empty:
                 filtered_data[sheet_name] = filtered_df
 
     if filtered_data:
-        with pd.ExcelWriter(output_file_path, engine='openpyxl') as writer:
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
             for sheet_name, df in filtered_data.items():
                 df.to_excel(writer, sheet_name=sheet_name, index=False)
-        return True
+        output.seek(0)
+        return output
     else:
-        return False
+        return None
 
-if __name__ == '__main__':
-    input_path = '/home/ubuntu/upload/July2025UKAgency&HostEvents.xlsx'
-    output_path = '/home/ubuntu/filtered_agency_data.xlsx'
+st.title("🔍 Filter Excel Sheets by 'Alpha Agency'")
 
-    if process_excel_file(input_path, output_path):
-        print(f'Filtered data saved to {output_path}')
+uploaded_file = st.file_uploader("Upload your Excel file (.xlsx)", type=["xlsx"])
+
+if uploaded_file:
+    filtered_output = process_excel_file(uploaded_file)
+
+    if filtered_output:
+        st.success("✅ Matching data found and filtered.")
+        st.download_button(
+            label="📥 Download Filtered File",
+            data=filtered_output,
+            file_name="filtered_agency_data.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
     else:
-        print('No data found for "Alpha Agency" in the specified sheets.')
+        st.warning("⚠️ No data found for 'Alpha Agency' in the uploaded sheets.")
