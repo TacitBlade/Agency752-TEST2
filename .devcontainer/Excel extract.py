@@ -13,13 +13,13 @@ def normalize_column(df, target_name, possible_names):
             return
     df[target_name] = ""
 
-def process_excel_file(uploaded_file, start_date, end_date, agencies_input):
+def process_excel_file(uploaded_file, start_date, end_date, agencies_input, host_name_input):
     agencies = [name.strip().lower() for name in agencies_input.split(",") if name.strip()]
+    host_name = host_name_input.strip().lower() if host_name_input else ""
     excel_data = pd.read_excel(uploaded_file, sheet_name=None, usecols=None)
     combined_df = []
 
     for sheet_name, df in excel_data.items():
-        # Skip sheet if essential columns are missing
         if 'Agency Name' not in df.columns or 'Date' not in df.columns:
             st.warning(f"❌ Skipping sheet '{sheet_name}' – missing 'Agency Name' or 'Date' column.")
             continue
@@ -27,16 +27,21 @@ def process_excel_file(uploaded_file, start_date, end_date, agencies_input):
         df['Agency Name'] = df['Agency Name'].astype(str)
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
-        # Match any agency name from input list exactly
         df_filtered = df[
             df['Agency Name'].str.lower().apply(lambda name: any(agency == name.strip().lower() for agency in agencies)) &
-            (df['Date'] >= start_date) &
+            (df['Date'] >= start_date) & 
             (df['Date'] <= end_date)
         ].copy()
 
         normalize_column(df_filtered, 'Time', ['Time', 'Start Time', 'PK Time', 'Clock'])
         normalize_column(df_filtered, 'ID1', ['ID1', 'ID 1', 'Identifier1', 'Agent ID'])
         normalize_column(df_filtered, 'ID2', ['ID2', 'ID 2', 'Identifier2', 'Reference ID'])
+
+        if host_name:
+            df_filtered = df_filtered[
+                df_filtered['ID1'].str.lower().str.contains(host_name) |
+                df_filtered['ID2'].str.lower().str.contains(host_name)
+            ]
 
         df_filtered['Date'] = df_filtered['Date'].dt.strftime('%Y-%m-%d')
         df_filtered['PK Type'] = sheet_name
@@ -55,12 +60,10 @@ def process_excel_file(uploaded_file, start_date, end_date, agencies_input):
         workbook = load_workbook(output)
         sheet = workbook['Filtered PK Events']
 
-        # Auto-adjust column widths
         for col in sheet.columns:
             max_len = max((len(str(cell.value)) if cell.value else 0) for cell in col)
             sheet.column_dimensions[get_column_letter(col[0].column)].width = max_len + 2
 
-        # Bold headers and freeze top row
         for cell in sheet[1]:
             cell.font = cell.font.copy(bold=True)
         sheet.freeze_panes = "A2"
@@ -77,6 +80,7 @@ st.title("📊 Filter Multiple Agencies Across PK Events")
 
 uploaded_file = st.file_uploader("📁 Upload Excel File", type=["xlsx"])
 agency_input = st.text_input("Enter Agency Names (comma-separated)", value="Alpha Agency")
+host_name_input = st.text_input("Enter Host Name to Search (optional)")
 start_date = st.date_input("Start Date")
 end_date = st.date_input("End Date")
 
@@ -87,7 +91,8 @@ if uploaded_file and agency_input and start_date and end_date:
         uploaded_file,
         pd.to_datetime(start_date),
         pd.to_datetime(end_date),
-        agency_input
+        agency_input,
+        host_name_input
     )
 
     if not preview_df.empty:
@@ -105,4 +110,4 @@ if uploaded_file and agency_input and start_date and end_date:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     else:
-        st.warning("⚠️ No matches found for those agency names in the selected date range.")
+        st.warning("⚠️ No matches found for the given filters.")
