@@ -18,10 +18,11 @@ def process_excel_file(uploaded_file, start_date, end_date, agencies_input, host
     host_name = host_name_input.strip().lower() if host_name_input else ""
     excel_data = pd.read_excel(uploaded_file, sheet_name=None, usecols=None)
     combined_df = []
+    skipped_sheets = []
 
     for sheet_name, df in excel_data.items():
         if 'Agency Name' not in df.columns or 'Date' not in df.columns:
-            st.warning(f"❌ Skipping sheet '{sheet_name}' – missing 'Agency Name' or 'Date' column.")
+            skipped_sheets.append(sheet_name)
             continue
 
         df['Agency Name'] = df['Agency Name'].astype(str)
@@ -71,9 +72,9 @@ def process_excel_file(uploaded_file, start_date, end_date, agencies_input, host
         final_output = BytesIO()
         workbook.save(final_output)
         final_output.seek(0)
-        return final_output, result_df
+        return final_output, result_df, skipped_sheets
     else:
-        return None, pd.DataFrame()
+        return None, pd.DataFrame(), skipped_sheets
 
 # 🎛 Streamlit UI
 st.title("📊 Filter Multiple Agencies Across PK Events")
@@ -87,7 +88,7 @@ end_date = st.date_input("End Date")
 if uploaded_file and agency_input and start_date and end_date:
     st.info("🔍 Filtering events from multiple agencies...")
 
-    result_excel, preview_df = process_excel_file(
+    result_excel, preview_df, skipped_sheets = process_excel_file(
         uploaded_file,
         pd.to_datetime(start_date),
         pd.to_datetime(end_date),
@@ -109,5 +110,11 @@ if uploaded_file and agency_input and start_date and end_date:
             file_name="combined_filtered_pk.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+        if skipped_sheets:
+            with st.expander("🧾 Skipped Sheets (Developer Only)", expanded=False):
+                st.write("Sheets skipped due to missing required columns:")
+                for sheet in skipped_sheets:
+                    st.markdown(f"- `{sheet}`")
     else:
         st.warning("⚠️ No matches found for the given filters.")
