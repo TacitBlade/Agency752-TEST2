@@ -52,29 +52,9 @@ def process_excel_file(uploaded_file, start_date, end_date, agencies_input, host
 
     if combined_df:
         result_df = pd.concat(combined_df, ignore_index=True)
-
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            result_df.to_excel(writer, sheet_name='Filtered PK Events', index=False)
-
-        output.seek(0)
-        workbook = load_workbook(output)
-        sheet = workbook['Filtered PK Events']
-
-        for col in sheet.columns:
-            max_len = max((len(str(cell.value)) if cell.value else 0) for cell in col)
-            sheet.column_dimensions[get_column_letter(col[0].column)].width = max_len + 2
-
-        for cell in sheet[1]:
-            cell.font = cell.font.copy(bold=True)
-        sheet.freeze_panes = "A2"
-
-        final_output = BytesIO()
-        workbook.save(final_output)
-        final_output.seek(0)
-        return final_output, result_df, skipped_sheets
+        return result_df, skipped_sheets
     else:
-        return None, pd.DataFrame(), skipped_sheets
+        return pd.DataFrame(), skipped_sheets
 
 # 🎛 Streamlit UI
 st.title("📊 Multi Agency PK Event Filter")
@@ -88,7 +68,7 @@ end_date = st.date_input("End Date")
 if uploaded_file and agency_input and start_date and end_date:
     st.info("🔍 Filtering events from multiple agencies...")
 
-    result_excel, preview_df, skipped_sheets = process_excel_file(
+    raw_df, skipped_sheets = process_excel_file(
         uploaded_file,
         pd.to_datetime(start_date),
         pd.to_datetime(end_date),
@@ -96,25 +76,54 @@ if uploaded_file and agency_input and start_date and end_date:
         host_name_input
     )
 
-    if not preview_df.empty:
-        st.success("✅ Results filtered!")
+    if not raw_df.empty:
+        # Dynamically populate PK type filter
+        pk_type_options = sorted(raw_df['PK Type'].dropna().unique())
+        pk_type_filter = st.multiselect("Filter by PK Type", options=pk_type_options, default=pk_type_options)
 
-        st.subheader("📄 Combined Preview")
-        st.dataframe(preview_df)
+        time_filter = st.text_input("Filter by Time (optional, partial match)")
+        id1_filter = st.text_input("Filter by ID1 (optional, partial match)")
+        id2_filter = st.text_input("Filter by ID2 (optional, partial match)")
 
-        st.write(f"🧮 Total events matched: {len(preview_df)}")
+        filtered_df = raw_df.copy()
 
-        st.download_button(
-            label="📥 Download Combined Excel",
-            data=result_excel,
-            file_name="combined_filtered_pk.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        if pk_type_filter:
+            filtered_df = filtered_df[filtered_df['PK Type'].isin(pk_type_filter)]
+        if time_filter:
+            filtered_df = filtered_df[filtered_df['Time'].str.contains(time_filter, case=False, na=False)]
+        if id1_filter:
+            filtered_df = filtered_df[filtered_df['ID1'].str.contains(id1_filter, case=False, na=False)]
+        if id2_filter:
+            filtered_df = filtered_df[filtered_df['ID2'].str.contains(id2_filter, case=False, na=False)]
 
-        if skipped_sheets:
-            with st.expander("🧾 Skipped Sheets (Developer Only)", expanded=False):
-                st.write("Sheets skipped due to missing required columns:")
-                for sheet in skipped_sheets:
-                    st.markdown(f"- `{sheet}`")
+        if not filtered_df.empty:
+            st.success("✅ Results filtered!")
+
+            st.subheader("📄 Combined Preview")
+            st.dataframe(filtered_df)
+
+            st.write(f"🧮 Total events matched: {len(filtered_df)}")
+
+            # Generate downloadable Excel
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                filtered_df.to_excel(writer, sheet_name='Filtered PK Events', index=False)
+            output.seek(0)
+
+            st.download_button(
+                label="📥 Download Filtered Excel",
+                data=output,
+                file_name="filtered_pk_events.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+            if skipped_sheets:
+                with st.expander("🧾 Skipped Sheets (Developer Only)", expanded=False):
+                    st.write("Sheets skipped due to missing required columns:")
+                    for sheet in skipped_sheets:
+                        st.markdown(f"- `{sheet}`")
+        else:
+            st.warning("⚠️ No matches found for the applied filters.")
     else:
-        st.warning("⚠️ No matches found for the given filters.")
+        st.warning("⚠️ No matching records found in any sheet.")
+
