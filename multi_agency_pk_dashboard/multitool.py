@@ -60,7 +60,6 @@ def enhanced_process_excel(uploaded_file, start_date, end_date, agencies_input, 
 
     for sheet_name, df in excel_data.items():
         clean_columns(df)
-        df.columns = [col.strip() for col in df.columns]
 
         if 'Agency Name' not in df.columns or 'Date' not in df.columns:
             skipped_sheets.append(sheet_name)
@@ -107,7 +106,7 @@ def enhanced_process_excel(uploaded_file, start_date, end_date, agencies_input, 
 st.set_page_config(page_title="Multi-Agency PK Filter", layout="wide")
 st.title("📊 Multi-Agency Event Filter + Profiler")
 
-uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
+uploaded_file = st.file_uploader("📁 Upload Excel File", type=["xlsx"])
 agency_input = st.text_input("Enter Agency Names (comma-separated)", value="Alpha Agency")
 host_name_input = st.text_input("Enter Host Name (optional)")
 start_date = st.date_input("Start Date")
@@ -130,7 +129,6 @@ if uploaded_file and agency_input and start_date and end_date:
             else:
                 st.success("✅ All expected columns present")
 
-    # Optional safety: stop if no usable sheets
     all_missing = all(p["Missing Expected"] for p in profiles.values())
     if all_missing:
         st.error("🚫 All sheets missing required columns. Upload a different file.")
@@ -148,14 +146,15 @@ if uploaded_file and agency_input and start_date and end_date:
 
     if not filtered_df.empty:
         pk_type_options = sorted(filtered_df['PK Type'].dropna().unique())
-        selected_pk = st.multiselect("Filter by PK Type", pk_type_options, default=pk_type_options)
+
+        if pk_type_options:
+            selected_pk = st.selectbox("Select a PK Type to filter", pk_type_options)
+            filtered_df = filtered_df[filtered_df['PK Type'] == selected_pk]
 
         time_filter = st.text_input("Filter by Time (optional)")
         id1_filter = st.text_input("Filter by ID1 (optional)")
         id2_filter = st.text_input("Filter by ID2 (optional)")
 
-        if selected_pk:
-            filtered_df = filtered_df[filtered_df['PK Type'].isin(selected_pk)]
         if time_filter:
             filtered_df = filtered_df[filtered_df['Time'].str.contains(time_filter, case=False, na=False)]
         if id1_filter:
